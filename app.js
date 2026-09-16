@@ -45,7 +45,7 @@ window.addEventListener('resize', () => {
   height = canvas.height = window.innerHeight;
 });
 
-// Canvas Helpers (Universal Rounded Rect for maximum compatibility)
+// Canvas Helpers (Universal Rounded Rect)
 function drawRoundedRect(x, y, w, h, r) {
   ctx.beginPath();
   if (ctx.roundRect) {
@@ -152,32 +152,6 @@ function renderRobotFace(centerX, centerY, size) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // --- Glowing Halo Background ---
-  ctx.save();
-  const glowColor = mouthState === 'crit' ? 'rgba(251, 191, 36, ' : 'rgba(56, 189, 248, ';
-  const haloRadius = size * 0.65;
-
-  // Outer Pulsing Aura
-  const gradient = ctx.createRadialGradient(centerX, centerY, size * 0.3, centerX, centerY, haloRadius + 30);
-  gradient.addColorStop(0, glowColor + '0.35)');
-  gradient.addColorStop(0.6, glowColor + '0.12)');
-  gradient.addColorStop(1, glowColor + '0)');
-
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, haloRadius + 35, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Crisp Neon Ring Halo Behind Head
-  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
-  ctx.lineWidth = 3;
-  ctx.shadowColor = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
-  ctx.shadowBlur = 15;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, haloRadius, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-
   // --- Outer Frame ---
   ctx.fillStyle = '#1e293b';
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
@@ -244,7 +218,7 @@ function render() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // Render Robot Head with Halo
+  // Render Robot Head
   renderRobotFace(width / 2, height / 2, 200);
 
   // Render particles
