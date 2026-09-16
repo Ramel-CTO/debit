@@ -6,7 +6,6 @@
   <meta name="color-scheme" content="dark">
   <title>DeBit ⚡</title>
   
-  <!-- PWA & Mobile Web App Meta Tags -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,22 +42,22 @@
 
   <div id="revive-screen" class="hidden">
     <div class="revive-card">
-      <div class="revive-title">BOT FAINTED ⚡</div>
-      <div class="revive-msg">Health reached 0%. Reviving will shock the bot back to life, but all Intelligence memory will be lost!</div>
-      <button id="revive-btn" onclick="revivePet()">⚡ Emergency Revive (Reset Intel)</button>
+      <div class="revive-title">SYSTEM OVERHEAT ⚡</div>
+      <div class="revive-msg">Compute reached 0%! Shocking the core will reboot the bot, but all Intel memory will be wiped!</div>
+      <button id="revive-btn" onclick="revivePet()">⚡ Emergency Reboot (Reset Intel)</button>
     </div>
   </div>
 
   <div id="bottom-hud">
-    <div class="bar-container" id="food-container" onclick="selectMeter('food')">
-      <span class="bar-label">FOOD</span>
+    <div class="bar-container" id="energy-container" onclick="selectMeter('energy')">
+      <span class="bar-label">ENERGY</span>
       <div class="bar-outer">
-        <div class="bar-fill" id="food-fill"></div>
+        <div class="bar-fill" id="energy-fill"></div>
       </div>
     </div>
 
     <div class="bar-container" id="health-container">
-      <span class="bar-label">HEALTH</span>
+      <span class="bar-label">COMPUTE</span>
       <div class="bar-outer">
         <div class="bar-fill" id="health-fill"></div>
       </div>
@@ -74,7 +73,6 @@
 
   <script src="app.js"></script>
 
-  <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
