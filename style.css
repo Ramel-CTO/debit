@@ -22,7 +22,7 @@ body {
 
 #hud {
   position: absolute;
-  top: 30px;
+  top: 40px;
   width: 100%;
   text-align: center;
   pointer-events: none;
@@ -49,40 +49,4 @@ body {
   font-weight: 900;
   color: #4ade80;
   text-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
-}
-
-/* Rounded Speech Bubble Chat Box */
-#chat-bubble {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 88%;
-  max-width: 380px;
-  background: rgba(30, 41, 59, 0.95);
-  border: 2px solid #38bdf8;
-  border-radius: 20px;
-  padding: 16px 20px;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
-  text-align: center;
-  pointer-events: none;
-}
-
-#chat-bubble .bubble-arrow {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 10px solid #38bdf8;
-}
-
-#tip-text {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #f8fafc;
-  line-height: 1.4;
 }
