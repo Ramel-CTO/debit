@@ -26,12 +26,26 @@ function updateAllowanceUI() {
   if (allowEl) allowEl.textContent = `$${allowance.toFixed(2)}`;
 }
 
+// Reset Allowance Function
+function resetAllowance() {
+  if (confirm("Are you sure you want to reset your allowance back to $0.00?")) {
+    allowance = 0.00;
+    localStorage.removeItem('debit_allowance');
+    updateAllowanceUI();
+    
+    // Trigger robot shocked expression on reset
+    mouthState = 'crit';
+    hurtTimer = 30;
+    shakeTimer = 8;
+  }
+}
+
 window.addEventListener('resize', () => {
   width = canvas.width = window.innerWidth;
   height = canvas.height = window.innerHeight;
 });
 
-// Canvas Helpers
+// Canvas Helpers (Universal Rounded Rect for maximum compatibility)
 function drawRoundedRect(x, y, w, h, r) {
   ctx.beginPath();
   if (ctx.roundRect) {
@@ -48,21 +62,7 @@ function drawRoundedRect(x, y, w, h, r) {
   ctx.stroke();
 }
 
-
-function resetAllowance() {
-  if (confirm("Are you sure you want to reset your allowance back to $0.00?")) {
-    allowance = 0.00;
-    localStorage.removeItem('debit_allowance');
-    updateAllowanceUI();
-    
-    // Trigger robot shocked expression on reset
-    mouthState = 'crit';
-    hurtTimer = 30;
-    shakeTimer = 8;
-  }
-}
-
-// Web Audio Synthesizer
+// Safe Web Audio Synthesizer
 let audioCtx = null;
 
 function playTapSound(isCrit) {
