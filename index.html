@@ -3,10 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="color-scheme" content="dark">
   <title>DeBit ⚡</title>
+  
+  <!-- Critical fallback inline CSS to prevent unstyled layout glitches -->
+  <style>
+    html, body {
+      background-color: #090d16 !important;
+      color: #ffffff !important;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body style="background-color: #090d16;">
 
   <canvas id="canvas"></canvas>
 
