@@ -33,8 +33,15 @@
     <div id="intel-bar-outer">
       <div id="intel-bar-fill"></div>
     </div>
+  </div>
 
-    <button id="reset-btn" onclick="resetPet()">Reset Pet</button>
+  <!-- Game Over Emergency Revive Screen -->
+  <div id="revive-screen" class="hidden">
+    <div class="revive-card">
+      <div class="revive-title">BOT FAINTED ⚡</div>
+      <div class="revive-msg">Health reached 0%. Reviving will shock the bot back to life, but all Intelligence memory will be lost!</div>
+      <button id="revive-btn" onclick="revivePet()">⚡ Emergency Revive (Reset Intel)</button>
+    </div>
   </div>
 
   <!-- Bottom Tamagotchi Status Bars -->
