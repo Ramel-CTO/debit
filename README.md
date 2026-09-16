@@ -1,4 +1,4 @@
-# DeBit ⚡
+# DeBit 
 
 > **Train your robot pet. Prevent core overheating.**  
 > A hyper-casual, client-side Tamagotchi-style virtual pet and micro-tapping game built with zero backend dependencies.
