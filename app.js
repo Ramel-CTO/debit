@@ -4,8 +4,14 @@ const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
 
-// Allowance State
-let allowance = parseFloat(localStorage.getItem('debit_allowance')) || 0.00;
+// Tamagotchi State
+let intel = parseInt(localStorage.getItem('debit_intel')) || 0;
+let food = parseFloat(localStorage.getItem('debit_food')) || 100;
+let water = parseFloat(localStorage.getItem('debit_water')) || 100;
+let health = parseFloat(localStorage.getItem('debit_health')) || 100;
+let lastTime = parseFloat(localStorage.getItem('debit_last_time')) || Date.now();
+
+let selectedMeter = null; // 'food', 'water', or null
 
 let comboPitch = 0;
 let particles = [];
@@ -21,19 +27,42 @@ let mouthState = 'neutral';
 let hurtTimer = 0;
 let nextEyeLookTimer = 0;
 
-function updateAllowanceUI() {
-  const allowEl = document.getElementById('allowance-amount');
-  if (allowEl) allowEl.textContent = `$${allowance.toFixed(2)}`;
+function updateHUD() {
+  const statEl = document.getElementById('stat-amount');
+  if (statEl) statEl.textContent = `${intel} Intel`;
+
+  document.getElementById('food-fill').style.width = `${food}%`;
+  document.getElementById('water-fill').style.width = `${water}%`;
+  document.getElementById('health-fill').style.width = `${health}%`;
+
+  // Toggle flashing animations when below 50%
+  document.getElementById('food-container').classList.toggle('flashing', food <= 50);
+  document.getElementById('water-container').classList.toggle('flashing', water <= 50);
+
+  // Active target selection border
+  document.getElementById('food-container').classList.toggle('active-target', selectedMeter === 'food');
+  document.getElementById('water-container').classList.toggle('active-target', selectedMeter === 'water');
 }
 
-// Reset Allowance Function
-function resetAllowance() {
-  if (confirm("Are you sure you want to reset your allowance back to $0.00?")) {
-    allowance = 0.00;
-    localStorage.removeItem('debit_allowance');
-    updateAllowanceUI();
+function selectMeter(meter) {
+  if (selectedMeter === meter) {
+    selectedMeter = null; // Deselect on second tap
+  } else {
+    selectedMeter = meter;
+  }
+  updateHUD();
+}
+
+function resetPet() {
+  if (confirm("Reset your pet back to 0 Intel and full health?")) {
+    intel = 0;
+    food = 100;
+    water = 100;
+    health = 100;
+    selectedMeter = null;
+    localStorage.clear();
+    updateHUD();
     
-    // Trigger robot shocked expression on reset
     mouthState = 'crit';
     hurtTimer = 30;
     shakeTimer = 8;
@@ -45,7 +74,7 @@ window.addEventListener('resize', () => {
   height = canvas.height = window.innerHeight;
 });
 
-// Canvas Helpers (Universal Rounded Rect)
+// Canvas Helpers
 function drawRoundedRect(x, y, w, h, r) {
   ctx.beginPath();
   if (ctx.roundRect) {
@@ -62,10 +91,10 @@ function drawRoundedRect(x, y, w, h, r) {
   ctx.stroke();
 }
 
-// Safe Web Audio Synthesizer
+// Web Audio Synthesizer
 let audioCtx = null;
 
-function playTapSound(isCrit) {
+function playTapSound(isCrit, toneType) {
   try {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -76,7 +105,10 @@ function playTapSound(isCrit) {
     const gain = audioCtx.createGain();
 
     osc.type = isCrit ? 'sawtooth' : 'triangle';
-    const baseFreq = isCrit ? 700 : 220 + Math.min(comboPitch * 15, 400);
+    let baseFreq = isCrit ? 700 : 220 + Math.min(comboPitch * 15, 400);
+
+    if (toneType === 'food') baseFreq = 300 + Math.min(comboPitch * 10, 200);
+    if (toneType === 'water') baseFreq = 500 + Math.min(comboPitch * 10, 200);
 
     osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
@@ -93,21 +125,40 @@ function playTapSound(isCrit) {
 
 function handleTap(x, y) {
   const isCrit = Math.random() < 0.05;
-  const inc = isCrit ? 0.25 : 0.05;
 
-  allowance += inc;
-  localStorage.setItem('debit_allowance', allowance);
-  updateAllowanceUI();
+  if (selectedMeter === 'food') {
+    food = Math.min(100, food + (isCrit ? 25 : 8));
+    if (food >= 100) selectedMeter = null; // Auto deselect when full
+    floaters.push({ text: isCrit ? '+25 FOOD!' : '+8 FOOD', color: '#4ade80', x, y, vy: -2, alpha: 1.0 });
+    playTapSound(isCrit, 'food');
+  } else if (selectedMeter === 'water') {
+    water = Math.min(100, water + (isCrit ? 30 : 10));
+    if (water >= 100) selectedMeter = null;
+    floaters.push({ text: isCrit ? '+30 WATER!' : '+10 WATER', color: '#38bdf8', x, y, vy: -2, alpha: 1.0 });
+    playTapSound(isCrit, 'water');
+  } else {
+    // Standard Intel Tapping
+    const inc = isCrit ? 25 : 5;
+    intel += inc;
+    floaters.push({ text: isCrit ? '+25 INTEL!' : '+5 INTEL', color: isCrit ? '#fbbf24' : '#38bdf8', x, y, vy: -2, alpha: 1.0 });
+    playTapSound(isCrit, 'intel');
+  }
+
+  // Save State
+  localStorage.setItem('debit_intel', intel);
+  localStorage.setItem('debit_food', food);
+  localStorage.setItem('debit_water', water);
+  localStorage.setItem('debit_health', health);
+
+  updateHUD();
 
   shakeTimer = isCrit ? 14 : 4;
   comboPitch++;
-  playTapSound(isCrit);
 
-  // Expression updates
   mouthState = isCrit ? 'crit' : 'hurt';
   hurtTimer = isCrit ? 22 : 10;
 
-  // Make robot eyes look directly at tap position
+  // Eye tracking tap point
   const centerX = width / 2;
   const centerY = height / 2;
   targetEyeX = Math.max(-12, Math.min(12, (x - centerX) / 15));
@@ -125,20 +176,48 @@ function handleTap(x, y) {
       color: isCrit ? '#fbbf24' : '#38bdf8'
     });
   }
-
-  // Floating Allowance Text
-  floaters.push({
-    text: isCrit ? '+$0.25 CRIT!' : '+$0.05',
-    color: isCrit ? '#fbbf24' : '#4ade80',
-    x: x, y: y, vy: -2, alpha: 1.0
-  });
 }
 
-window.addEventListener('pointerdown', (e) => handleTap(e.clientX, e.clientY));
+window.addEventListener('pointerdown', (e) => {
+  // Prevent canvas taps when clicking bottom HUD controls
+  if (e.clientY > window.innerHeight - 100) return;
+  handleTap(e.clientX, e.clientY);
+});
+
+// Decaying Loop Mechanics
+function updateDecay() {
+  const now = Date.now();
+  const dt = (now - lastTime) / 1000; // Time delta in seconds
+  lastTime = now;
+
+  // Water decays faster than Food
+  water = Math.max(0, water - dt * 0.35); 
+  food = Math.max(0, food - dt * 0.2);
+
+  // Health drops over 7 days if Food or Water is 0
+  // 100 Health / (7 days * 86400 sec) = ~0.000165% per second
+  if (food === 0 || water === 0) {
+    health = Math.max(0, health - dt * 0.000165 * 100);
+  } else if (health < 100 && food > 20 && water > 20) {
+    // Slow health recovery when fed & hydrated
+    health = Math.min(100, health + dt * 0.05);
+  }
+
+  localStorage.setItem('debit_food', food);
+  localStorage.setItem('debit_water', water);
+  localStorage.setItem('debit_health', health);
+  localStorage.setItem('debit_last_time', lastTime);
+
+  updateHUD();
+}
+
+setInterval(updateDecay, 1000);
 
 function renderRobotFace(centerX, centerY, size) {
   eyeOffsetX += (targetEyeX - eyeOffsetX) * 0.15;
   eyeOffsetY += (targetEyeY - eyeOffsetY) * 0.15;
+
+  const isHealthDeclining = (food === 0 || water === 0);
 
   if (hurtTimer <= 0) {
     nextEyeLookTimer--;
@@ -152,13 +231,13 @@ function renderRobotFace(centerX, centerY, size) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // --- Outer Frame ---
+  // Outer Frame
   ctx.fillStyle = '#1e293b';
-  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
   ctx.lineWidth = 4;
   drawRoundedRect(centerX - size / 2, centerY - size / 2, size, size, 24);
 
-  // --- Eyes ---
+  // Eyes
   const eyeRadius = size * 0.12;
   const leftEyeX = centerX - size * 0.22;
   const rightEyeX = centerX + size * 0.22;
@@ -171,7 +250,7 @@ function renderRobotFace(centerX, centerY, size) {
   ctx.fill();
 
   // Pupils
-  ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
   const pupilRadius = mouthState === 'hurt' ? eyeRadius * 0.4 : eyeRadius * 0.55;
 
   ctx.beginPath();
@@ -188,11 +267,17 @@ function renderRobotFace(centerX, centerY, size) {
 
   // --- Mouth Expressions ---
   const mouthY = centerY + size * 0.2;
-  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
   ctx.lineWidth = 3;
   ctx.fillStyle = '#38bdf8';
 
-  if (mouthState === 'neutral') {
+  if (isHealthDeclining && mouthState === 'neutral') {
+    // Always show Sad Mouth when health is declining
+    ctx.beginPath();
+    ctx.arc(centerX, mouthY + 10, 16, 1.2 * Math.PI, 1.8 * Math.PI);
+    ctx.stroke();
+  } else if (mouthState === 'neutral') {
+    // Normal happy smile
     ctx.beginPath();
     ctx.arc(centerX, mouthY - 5, 18, 0.2 * Math.PI, 0.8 * Math.PI);
     ctx.stroke();
@@ -219,7 +304,7 @@ function render() {
   ctx.clearRect(0, 0, width, height);
 
   // Render Robot Head
-  renderRobotFace(width / 2, height / 2, 200);
+  renderRobotFace(width / 2, height / 2 - 20, 190);
 
   // Render particles
   particles.forEach((p, i) => {
@@ -247,7 +332,7 @@ function render() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  updateAllowanceUI();
+  updateHUD();
 });
 
 render();
