@@ -152,13 +152,39 @@ function renderRobotFace(centerX, centerY, size) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // Outer Frame
+  // --- Glowing Halo Background ---
+  ctx.save();
+  const glowColor = mouthState === 'crit' ? 'rgba(251, 191, 36, ' : 'rgba(56, 189, 248, ';
+  const haloRadius = size * 0.65;
+
+  // Outer Pulsing Aura
+  const gradient = ctx.createRadialGradient(centerX, centerY, size * 0.3, centerX, centerY, haloRadius + 30);
+  gradient.addColorStop(0, glowColor + '0.35)');
+  gradient.addColorStop(0.6, glowColor + '0.12)');
+  gradient.addColorStop(1, glowColor + '0)');
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, haloRadius + 35, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crisp Neon Ring Halo Behind Head
+  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, haloRadius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // --- Outer Frame ---
   ctx.fillStyle = '#1e293b';
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
   ctx.lineWidth = 4;
   drawRoundedRect(centerX - size / 2, centerY - size / 2, size, size, 24);
 
-  // Eyes
+  // --- Eyes ---
   const eyeRadius = size * 0.12;
   const leftEyeX = centerX - size * 0.22;
   const rightEyeX = centerX + size * 0.22;
@@ -186,7 +212,7 @@ function renderRobotFace(centerX, centerY, size) {
   ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Mouth Expressions
+  // --- Mouth Expressions ---
   const mouthY = centerY + size * 0.2;
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
   ctx.lineWidth = 3;
@@ -218,7 +244,7 @@ function render() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // Render Robot Head
+  // Render Robot Head with Halo
   renderRobotFace(width / 2, height / 2, 200);
 
   // Render particles
