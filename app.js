@@ -4,19 +4,23 @@ const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
 
-// Tamagotchi State
+// State Variables
 let intel = parseInt(localStorage.getItem('debit_intel')) || 0;
 let food = parseFloat(localStorage.getItem('debit_food')) || 100;
 let water = parseFloat(localStorage.getItem('debit_water')) || 100;
 let health = parseFloat(localStorage.getItem('debit_health')) || 100;
 let lastTime = parseFloat(localStorage.getItem('debit_last_time')) || Date.now();
 
-let selectedMeter = null; // 'food', 'water', or null
+let selectedMeter = null;
 
 let comboPitch = 0;
 let particles = [];
 let floaters = [];
 let shakeTimer = 0;
+
+// Brain Pulse Animation State
+let pulseScale = 0;
+let pulseGlow = 0;
 
 // Robot Face State
 let eyeOffsetX = 0;
@@ -27,34 +31,48 @@ let mouthState = 'neutral';
 let hurtTimer = 0;
 let nextEyeLookTimer = 0;
 
+// Dynamic Level Titles
+const levelTitles = [
+  "Baby Bot", "Smart Bot", "Genius Bot", "Cyber Mind", 
+  "Quantum AI", "Mega Brain", "Cosmic Oracle", "Omniscient Bot"
+];
+
+function getLevelInfo() {
+  const level = Math.floor(intel / 100) + 1;
+  const currentProgress = intel % 100;
+  const titleIndex = Math.min(level - 1, levelTitles.length - 1);
+  return {
+    level,
+    currentProgress,
+    title: `Lvl ${level}: ${levelTitles[titleIndex]}`
+  };
+}
+
 function updateHUD() {
-  const statEl = document.getElementById('stat-amount');
-  if (statEl) statEl.textContent = `${intel} Intel`;
+  const info = getLevelInfo();
+
+  document.getElementById('level-title').textContent = info.title;
+  document.getElementById('stat-amount').textContent = `${info.currentProgress} / 100 Intel`;
+  document.getElementById('intel-bar-fill').style.width = `${info.currentProgress}%`;
 
   document.getElementById('food-fill').style.width = `${food}%`;
   document.getElementById('water-fill').style.width = `${water}%`;
   document.getElementById('health-fill').style.width = `${health}%`;
 
-  // Toggle flashing animations when below 50%
   document.getElementById('food-container').classList.toggle('flashing', food <= 50);
   document.getElementById('water-container').classList.toggle('flashing', water <= 50);
 
-  // Active target selection border
   document.getElementById('food-container').classList.toggle('active-target', selectedMeter === 'food');
   document.getElementById('water-container').classList.toggle('active-target', selectedMeter === 'water');
 }
 
 function selectMeter(meter) {
-  if (selectedMeter === meter) {
-    selectedMeter = null; // Deselect on second tap
-  } else {
-    selectedMeter = meter;
-  }
+  selectedMeter = (selectedMeter === meter) ? null : meter;
   updateHUD();
 }
 
 function resetPet() {
-  if (confirm("Reset your pet back to 0 Intel and full health?")) {
+  if (confirm("Reset your pet back to Lvl 1 and 0 Intel?")) {
     intel = 0;
     food = 100;
     water = 100;
@@ -74,7 +92,6 @@ window.addEventListener('resize', () => {
   height = canvas.height = window.innerHeight;
 });
 
-// Canvas Helpers
 function drawRoundedRect(x, y, w, h, r) {
   ctx.beginPath();
   if (ctx.roundRect) {
@@ -109,26 +126,28 @@ function playTapSound(isCrit, toneType) {
 
     if (toneType === 'food') baseFreq = 300 + Math.min(comboPitch * 10, 200);
     if (toneType === 'water') baseFreq = 500 + Math.min(comboPitch * 10, 200);
+    if (toneType === 'levelup') baseFreq = 880;
 
     osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
+    osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + (isCrit ? 0.3 : 0.08));
 
     gain.gain.setValueAtTime(isCrit ? 0.4 : 0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isCrit ? 0.3 : 0.08));
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
+    osc.stop(audioCtx.currentTime + (isCrit ? 0.3 : 0.08));
   } catch (e) {}
 }
 
 function handleTap(x, y) {
   const isCrit = Math.random() < 0.05;
+  const prevLevel = Math.floor(intel / 100);
 
   if (selectedMeter === 'food') {
     food = Math.min(100, food + (isCrit ? 25 : 8));
-    if (food >= 100) selectedMeter = null; // Auto deselect when full
+    if (food >= 100) selectedMeter = null;
     floaters.push({ text: isCrit ? '+25 FOOD!' : '+8 FOOD', color: '#4ade80', x, y, vy: -2, alpha: 1.0 });
     playTapSound(isCrit, 'food');
   } else if (selectedMeter === 'water') {
@@ -137,14 +156,38 @@ function handleTap(x, y) {
     floaters.push({ text: isCrit ? '+30 WATER!' : '+10 WATER', color: '#38bdf8', x, y, vy: -2, alpha: 1.0 });
     playTapSound(isCrit, 'water');
   } else {
-    // Standard Intel Tapping
+    // Intel Gain
     const inc = isCrit ? 25 : 5;
     intel += inc;
     floaters.push({ text: isCrit ? '+25 INTEL!' : '+5 INTEL', color: isCrit ? '#fbbf24' : '#38bdf8', x, y, vy: -2, alpha: 1.0 });
+    
+    // Trigger Brain Pulse FX
+    pulseScale = 14;
+    pulseGlow = 1.0;
+
     playTapSound(isCrit, 'intel');
+
+    // Check Level Up
+    const newLevel = Math.floor(intel / 100);
+    if (newLevel > prevLevel) {
+      // Massive Level-Up Particle Explosion & Shake
+      shakeTimer = 25;
+      playTapSound(true, 'levelup');
+      floaters.push({ text: 'LEVEL UP! 🎉', color: '#fbbf24', x: width / 2, y: height / 2 - 120, vy: -3, alpha: 1.0 });
+
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: width / 2, y: height / 2,
+          vx: (Math.random() - 0.5) * 22,
+          vy: (Math.random() - 0.5) * 22,
+          size: Math.random() * 8 + 3,
+          life: 1.0,
+          color: Math.random() < 0.5 ? '#fbbf24' : '#38bdf8'
+        });
+      }
+    }
   }
 
-  // Save State
   localStorage.setItem('debit_intel', intel);
   localStorage.setItem('debit_food', food);
   localStorage.setItem('debit_water', water);
@@ -152,19 +195,17 @@ function handleTap(x, y) {
 
   updateHUD();
 
-  shakeTimer = isCrit ? 14 : 4;
+  shakeTimer = Math.max(shakeTimer, isCrit ? 14 : 4);
   comboPitch++;
 
   mouthState = isCrit ? 'crit' : 'hurt';
   hurtTimer = isCrit ? 22 : 10;
 
-  // Eye tracking tap point
   const centerX = width / 2;
   const centerY = height / 2;
   targetEyeX = Math.max(-12, Math.min(12, (x - centerX) / 15));
   targetEyeY = Math.max(-12, Math.min(12, (y - centerY) / 15));
 
-  // Particles
   const count = isCrit ? 30 : 10;
   for (let i = 0; i < count; i++) {
     particles.push({
@@ -179,27 +220,21 @@ function handleTap(x, y) {
 }
 
 window.addEventListener('pointerdown', (e) => {
-  // Prevent canvas taps when clicking bottom HUD controls
   if (e.clientY > window.innerHeight - 100) return;
   handleTap(e.clientX, e.clientY);
 });
 
-// Decaying Loop Mechanics
 function updateDecay() {
   const now = Date.now();
-  const dt = (now - lastTime) / 1000; // Time delta in seconds
+  const dt = (now - lastTime) / 1000;
   lastTime = now;
 
-  // Water decays faster than Food
   water = Math.max(0, water - dt * 0.35); 
   food = Math.max(0, food - dt * 0.2);
 
-  // Health drops over 7 days if Food or Water is 0
-  // 100 Health / (7 days * 86400 sec) = ~0.000165% per second
   if (food === 0 || water === 0) {
     health = Math.max(0, health - dt * 0.000165 * 100);
   } else if (health < 100 && food > 20 && water > 20) {
-    // Slow health recovery when fed & hydrated
     health = Math.min(100, health + dt * 0.05);
   }
 
@@ -213,7 +248,40 @@ function updateDecay() {
 
 setInterval(updateDecay, 1000);
 
-function renderRobotFace(centerX, centerY, size) {
+// Forehead Brain Icon Renderer
+function drawBrainIcon(cx, cy, size, fillRatio) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // Brain Outline / Base
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(-size * 0.3, 0, size * 0.4, 0.5 * Math.PI, 1.5 * Math.PI);
+  ctx.arc(size * 0.3, 0, size * 0.4, 1.5 * Math.PI, 0.5 * Math.PI);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Glowing Fill according to current Level Progress
+  if (fillRatio > 0) {
+    ctx.fillStyle = '#38bdf8';
+    ctx.shadowColor = '#38bdf8';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(-size * 0.3, 0, size * 0.4 * fillRatio, 0, Math.PI * 2);
+    ctx.arc(size * 0.3, 0, size * 0.4 * fillRatio, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function renderRobotFace(centerX, centerY, baseSize) {
+  // Apply Brain Pulse FX sizing swell
+  const size = baseSize + pulseScale;
+  if (pulseScale > 0) pulseScale *= 0.85;
+  if (pulseGlow > 0) pulseGlow -= 0.05;
+
   eyeOffsetX += (targetEyeX - eyeOffsetX) * 0.15;
   eyeOffsetY += (targetEyeY - eyeOffsetY) * 0.15;
 
@@ -231,17 +299,33 @@ function renderRobotFace(centerX, centerY, size) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // Outer Frame
+  // --- Brain Pulse Glow Shockwave ---
+  if (pulseGlow > 0) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(56, 189, 248, ${pulseGlow})`;
+    ctx.lineWidth = 6;
+    ctx.shadowColor = '#38bdf8';
+    ctx.shadowBlur = 20;
+    drawRoundedRect(centerX - (size + 16) / 2, centerY - (size + 16) / 2, size + 16, size + 16, 28);
+    ctx.restore();
+  }
+
+  // --- Main Robot Frame ---
   ctx.fillStyle = '#1e293b';
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
   ctx.lineWidth = 4;
   drawRoundedRect(centerX - size / 2, centerY - size / 2, size, size, 24);
 
-  // Eyes
+  // --- Forehead Brain Icon ---
+  const levelInfo = getLevelInfo();
+  const fillRatio = levelInfo.currentProgress / 100;
+  drawBrainIcon(centerX, centerY - size * 0.32, 18, fillRatio);
+
+  // --- Eyes ---
   const eyeRadius = size * 0.12;
   const leftEyeX = centerX - size * 0.22;
   const rightEyeX = centerX + size * 0.22;
-  const eyeY = centerY - size * 0.12;
+  const eyeY = centerY - size * 0.05;
 
   ctx.fillStyle = '#0f172a';
   ctx.beginPath();
@@ -258,26 +342,24 @@ function renderRobotFace(centerX, centerY, size) {
   ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye Catchlight Sparks
+  // Eye Catchlights
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Mouth Expressions ---
-  const mouthY = centerY + size * 0.2;
+  // --- Mouth ---
+  const mouthY = centerY + size * 0.24;
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
   ctx.lineWidth = 3;
   ctx.fillStyle = '#38bdf8';
 
   if (isHealthDeclining && mouthState === 'neutral') {
-    // Always show Sad Mouth when health is declining
     ctx.beginPath();
     ctx.arc(centerX, mouthY + 10, 16, 1.2 * Math.PI, 1.8 * Math.PI);
     ctx.stroke();
   } else if (mouthState === 'neutral') {
-    // Normal happy smile
     ctx.beginPath();
     ctx.arc(centerX, mouthY - 5, 18, 0.2 * Math.PI, 0.8 * Math.PI);
     ctx.stroke();
