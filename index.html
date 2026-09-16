@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DeBit – Tap your debt to zero</title>
+  <title>DeBit – Microchip Bug Squisher</title>
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Optional: Drop your Google Analytics tag here -->
-  <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-YOURTRACKINGID"></script> -->
 </head>
 <body>
 
@@ -15,30 +12,14 @@
 
   <div id="hud">
     <div id="brand-logo">DeBit ⚡</div>
-    <div id="debt-name">Active Debt Target</div>
-    <div id="debt-amount">$1,200.00</div>
-    <div id="streak-badge">🔥 Streak: 1 Day</div>
+    <div id="allowance-label">Active Allowance</div>
+    <div id="allowance-amount">$0.00</div>
   </div>
 
-  <div id="progress-container">
-    <div id="progress-bar"></div>
-    <div id="progress-text">Daily Shred: $0.00 / $10.00</div>
-  </div>
-
-  <!-- Win Overlay Modal -->
-  <div id="modal" class="hidden">
-    <div class="modal-card">
-      <h2>🎉 Daily Shred Goal Cleared!</h2>
-      <p>Make it count in the real world. Transfer $10.00 right now:</p>
-      
-      <div class="btn-group">
-        <button onclick="redirectBank('Venmo', 'https://venmo.com')">Open Venmo</button>
-        <button onclick="redirectBank('CashApp', 'https://cash.app')">Open Cash App</button>
-        <button onclick="redirectBank('PayPal', 'https://paypal.com')">Open PayPal</button>
-      </div>
-
-      <button class="btn-close" onclick="closeModal()">Keep Tapping</button>
-    </div>
+  <!-- Rounded Speech Bubble Chat Box -->
+  <div id="chat-bubble">
+    <div class="bubble-arrow"></div>
+    <span id="tip-text">Welcome! Tap the microchip bugs to squish them and earn your allowance!</span>
   </div>
 
   <script src="app.js"></script>
