@@ -14,6 +14,15 @@ let particles = [];
 let floaters = [];
 let shakeTimer = 0;
 
+// Robot Face State
+let eyeOffsetX = 0;
+let eyeOffsetY = 0;
+let targetEyeX = 0;
+let targetEyeY = 0;
+let mouthState = 'neutral'; // 'neutral', 'hurt', 'crit'
+let hurtTimer = 0;
+let nextEyeLookTimer = 0;
+
 document.getElementById('debt-amount').textContent = `$${debtTotal.toFixed(2)}`;
 updateProgressBar();
 
@@ -60,7 +69,7 @@ function handleTap(x, y) {
   debtTotal = Math.max(0, debtTotal - amount);
   dailyShredded += amount;
 
-  // Persist data locally
+  // Save progress
   localStorage.setItem('debit_total', debtTotal);
   localStorage.setItem('debit_daily', dailyShredded);
 
@@ -70,6 +79,16 @@ function handleTap(x, y) {
   shakeTimer = isCrit ? 16 : 4;
   comboPitch++;
   playTapSound(isCrit);
+
+  // Set Robot Expression on Tap
+  mouthState = isCrit ? 'crit' : 'hurt';
+  hurtTimer = isCrit ? 25 : 12;
+
+  // Make eyes track tap point
+  const centerX = width / 2;
+  const centerY = height / 2;
+  targetEyeX = Math.max(-10, Math.min(10, (x - centerX) / 15));
+  targetEyeY = Math.max(-10, Math.min(10, (y - centerY) / 15));
 
   // Particles
   const count = isCrit ? 35 : 10;
@@ -91,7 +110,6 @@ function handleTap(x, y) {
     x: x, y: y, vy: -2, alpha: 1.0
   });
 
-  // Track daily goal trigger
   if (dailyShredded >= dailyGoal && (dailyShredded - amount) < dailyGoal) {
     document.getElementById('modal').classList.remove('hidden');
     if (typeof gtag !== 'undefined') {
@@ -101,6 +119,86 @@ function handleTap(x, y) {
 }
 
 window.addEventListener('pointerdown', (e) => handleTap(e.clientX, e.clientY));
+
+function renderRobotFace(centerX, centerY, size) {
+  // Smooth Eye Movement (Ease towards target position)
+  eyeOffsetX += (targetEyeX - eyeOffsetX) * 0.15;
+  eyeOffsetY += (targetEyeY - eyeOffsetY) * 0.15;
+
+  // Idle Looking Around Routine
+  if (hurtTimer <= 0) {
+    nextEyeLookTimer--;
+    if (nextEyeLookTimer <= 0) {
+      targetEyeX = (Math.random() - 0.5) * 16;
+      targetEyeY = (Math.random() - 0.5) * 12;
+      nextEyeLookTimer = Math.floor(Math.random() * 90) + 40; // Look around every 1-3 seconds
+    }
+  } else {
+    hurtTimer--;
+    if (hurtTimer <= 0) mouthState = 'neutral';
+  }
+
+  // --- Draw Robot Body / Screen Frame ---
+  ctx.fillStyle = '#1e293b';
+  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(centerX - size/2, centerY - size/2, size, size, 24);
+  ctx.fill();
+  ctx.stroke();
+
+  // --- Robot Eyes ---
+  const eyeRadius = size * 0.12;
+  const leftEyeX = centerX - size * 0.22;
+  const rightEyeX = centerX + size * 0.22;
+  const eyeY = centerY - size * 0.12;
+
+  // Outer Eye Glowing Screens
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(leftEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+  ctx.arc(rightEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cyan Neon Pupils (Move around inside eyes)
+  ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  const pupilRadius = mouthState === 'hurt' ? eyeRadius * 0.4 : eyeRadius * 0.55;
+
+  ctx.beginPath();
+  ctx.arc(leftEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
+  ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pupil Reflection Sparks (Gives life to the eyes)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
+  ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // --- Robot Mouth Expressions ---
+  const mouthY = centerY + size * 0.2;
+  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
+  ctx.lineWidth = 3;
+  ctx.fillStyle = '#38bdf8';
+
+  if (mouthState === 'neutral') {
+    // Slight happy curve
+    ctx.beginPath();
+    ctx.arc(centerX, mouthY - 5, 18, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+  } else if (mouthState === 'hurt') {
+    // Surprised / O-shape mouth
+    ctx.beginPath();
+    ctx.ellipse(centerX, mouthY, 8, 12, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (mouthState === 'crit') {
+    // Open shocked wide mouth (Crit Hit!)
+    ctx.beginPath();
+    ctx.ellipse(centerX, mouthY, 16, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
 function render() {
   ctx.save();
@@ -113,15 +211,8 @@ function render() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // DeBit 3D Target Block
-  ctx.fillStyle = '#1e293b';
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 4;
-  const size = 180;
-  ctx.beginPath();
-  ctx.roundRect(width / 2 - size/2, height / 2 - size/2, size, size, 20);
-  ctx.fill();
-  ctx.stroke();
+  // Draw Robot Mascot
+  renderRobotFace(width / 2, height / 2, 200);
 
   // Render particles
   particles.forEach((p, i) => {
