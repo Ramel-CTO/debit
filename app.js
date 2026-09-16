@@ -6,9 +6,9 @@ let height = canvas.height = window.innerHeight;
 
 // State Variables
 let intel = parseInt(localStorage.getItem('debit_intel')) || 0;
-let food = parseFloat(localStorage.getItem('debit_food')) || 100;
+let energy = parseFloat(localStorage.getItem('debit_energy')) || 100;
 let water = parseFloat(localStorage.getItem('debit_water')) || 100;
-let health = parseFloat(localStorage.getItem('debit_health')) || 100;
+let health = parseFloat(localStorage.getItem('debit_health')) || 100; // Compute power
 let lastTime = parseFloat(localStorage.getItem('debit_last_time')) || Date.now();
 
 let selectedMeter = null;
@@ -18,11 +18,9 @@ let particles = [];
 let floaters = [];
 let shakeTimer = 0;
 
-// Brain Pulse Animation State
 let pulseScale = 0;
 let pulseGlow = 0;
 
-// Robot Face State
 let eyeOffsetX = 0;
 let eyeOffsetY = 0;
 let targetEyeX = 0;
@@ -54,17 +52,16 @@ function updateHUD() {
   document.getElementById('stat-amount').textContent = `${info.currentProgress} / 100 Intel`;
   document.getElementById('intel-bar-fill').style.width = `${info.currentProgress}%`;
 
-  document.getElementById('food-fill').style.width = `${food}%`;
+  document.getElementById('energy-fill').style.width = `${energy}%`;
   document.getElementById('water-fill').style.width = `${water}%`;
   document.getElementById('health-fill').style.width = `${health}%`;
 
-  document.getElementById('food-container').classList.toggle('flashing', food <= 50);
+  document.getElementById('energy-container').classList.toggle('flashing', energy <= 50);
   document.getElementById('water-container').classList.toggle('flashing', water <= 50);
 
-  document.getElementById('food-container').classList.toggle('active-target', selectedMeter === 'food');
+  document.getElementById('energy-container').classList.toggle('active-target', selectedMeter === 'energy');
   document.getElementById('water-container').classList.toggle('active-target', selectedMeter === 'water');
 
-  // Display Emergency Revive Screen on 0 Health
   const reviveScreen = document.getElementById('revive-screen');
   if (health <= 0) {
     reviveScreen.classList.remove('hidden');
@@ -74,30 +71,28 @@ function updateHUD() {
 }
 
 function selectMeter(meter) {
-  if (health <= 0) return; // Locked out when dead
+  if (health <= 0) return;
   selectedMeter = (selectedMeter === meter) ? null : meter;
   updateHUD();
 }
 
 function revivePet() {
-  // Emergency Defibrillator Revive State
   health = 100;
-  food = 100;
+  energy = 100;
   water = 100;
-  intel = 0; // Wipe all Intelligence memory back to Lvl 1
+  intel = 0;
   selectedMeter = null;
 
   localStorage.setItem('debit_intel', intel);
-  localStorage.setItem('debit_food', food);
+  localStorage.setItem('debit_energy', energy);
   localStorage.setItem('debit_water', water);
   localStorage.setItem('debit_health', health);
 
   updateHUD();
 
-  // Defibrillator Revive Shock FX
   shakeTimer = 30;
   playTapSound(true, 'levelup');
-  floaters.push({ text: 'REVIVED! ⚡', color: '#4ade80', x: width / 2, y: height / 2 - 120, vy: -3, alpha: 1.0 });
+  floaters.push({ text: 'REBOOTED! ⚡', color: '#4ade80', x: width / 2, y: height / 2 - 120, vy: -3, alpha: 1.0 });
 
   for (let i = 0; i < 50; i++) {
     particles.push({
@@ -132,7 +127,6 @@ function drawRoundedRect(x, y, w, h, r) {
   ctx.stroke();
 }
 
-// Web Audio Synthesizer
 let audioCtx = null;
 
 function playTapSound(isCrit, toneType) {
@@ -148,7 +142,7 @@ function playTapSound(isCrit, toneType) {
     osc.type = isCrit ? 'sawtooth' : 'triangle';
     let baseFreq = isCrit ? 700 : 220 + Math.min(comboPitch * 15, 400);
 
-    if (toneType === 'food') baseFreq = 300 + Math.min(comboPitch * 10, 200);
+    if (toneType === 'energy') baseFreq = 300 + Math.min(comboPitch * 10, 200);
     if (toneType === 'water') baseFreq = 500 + Math.min(comboPitch * 10, 200);
     if (toneType === 'levelup') baseFreq = 880;
 
@@ -166,23 +160,22 @@ function playTapSound(isCrit, toneType) {
 }
 
 function handleTap(x, y) {
-  if (health <= 0) return; // Prevent all interaction when dead
+  if (health <= 0) return;
 
   const isCrit = Math.random() < 0.05;
   const prevLevel = Math.floor(intel / 100);
 
-  if (selectedMeter === 'food') {
-    food = Math.min(100, food + (isCrit ? 25 : 8));
-    if (food >= 100) selectedMeter = null;
-    floaters.push({ text: isCrit ? '+25 FOOD!' : '+8 FOOD', color: '#4ade80', x, y, vy: -2, alpha: 1.0 });
-    playTapSound(isCrit, 'food');
+  if (selectedMeter === 'energy') {
+    energy = Math.min(100, energy + (isCrit ? 25 : 8));
+    if (energy >= 100) selectedMeter = null;
+    floaters.push({ text: isCrit ? '+25 ENERGY!' : '+8 ENERGY', color: '#4ade80', x, y, vy: -2, alpha: 1.0 });
+    playTapSound(isCrit, 'energy');
   } else if (selectedMeter === 'water') {
     water = Math.min(100, water + (isCrit ? 30 : 10));
     if (water >= 100) selectedMeter = null;
     floaters.push({ text: isCrit ? '+30 WATER!' : '+10 WATER', color: '#38bdf8', x, y, vy: -2, alpha: 1.0 });
     playTapSound(isCrit, 'water');
   } else {
-    // Intel Gain
     const inc = isCrit ? 25 : 5;
     intel += inc;
     floaters.push({ text: isCrit ? '+25 INTEL!' : '+5 INTEL', color: isCrit ? '#fbbf24' : '#38bdf8', x, y, vy: -2, alpha: 1.0 });
@@ -212,7 +205,7 @@ function handleTap(x, y) {
   }
 
   localStorage.setItem('debit_intel', intel);
-  localStorage.setItem('debit_food', food);
+  localStorage.setItem('debit_energy', energy);
   localStorage.setItem('debit_water', water);
   localStorage.setItem('debit_health', health);
 
@@ -253,15 +246,15 @@ function updateDecay() {
   lastTime = now;
 
   water = Math.max(0, water - dt * 0.35); 
-  food = Math.max(0, food - dt * 0.2);
+  energy = Math.max(0, energy - dt * 0.2);
 
-  if (food === 0 || water === 0) {
+  if (energy === 0 || water === 0) {
     health = Math.max(0, health - dt * 0.000165 * 100);
-  } else if (health < 100 && food > 20 && water > 20) {
+  } else if (health < 100 && energy > 20 && water > 20) {
     health = Math.min(100, health + dt * 0.05);
   }
 
-  localStorage.setItem('debit_food', food);
+  localStorage.setItem('debit_energy', energy);
   localStorage.setItem('debit_water', water);
   localStorage.setItem('debit_health', health);
   localStorage.setItem('debit_last_time', lastTime);
@@ -296,7 +289,6 @@ function drawBrainIcon(cx, cy, size, fillRatio) {
   ctx.restore();
 }
 
-// Dead X X Eyes Helper
 function drawDeadEye(cx, cy, size) {
   ctx.strokeStyle = '#ef4444';
   ctx.lineWidth = 4;
@@ -317,7 +309,7 @@ function renderRobotFace(centerX, centerY, baseSize) {
   eyeOffsetX += (targetEyeX - eyeOffsetX) * 0.15;
   eyeOffsetY += (targetEyeY - eyeOffsetY) * 0.15;
 
-  const isHealthDeclining = (food === 0 || water === 0);
+  const isOverheating = (energy === 0 || water === 0);
 
   if (!isDead && hurtTimer <= 0) {
     nextEyeLookTimer--;
@@ -331,7 +323,6 @@ function renderRobotFace(centerX, centerY, baseSize) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // Shockwave Glow
   if (pulseGlow > 0 && !isDead) {
     ctx.save();
     ctx.strokeStyle = `rgba(56, 189, 248, ${pulseGlow})`;
@@ -342,28 +333,23 @@ function renderRobotFace(centerX, centerY, baseSize) {
     ctx.restore();
   }
 
-  // Main Robot Frame
   ctx.fillStyle = '#1e293b';
-  ctx.strokeStyle = isDead ? '#ef4444' : (mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8'));
+  ctx.strokeStyle = isDead ? '#ef4444' : (mouthState === 'crit' ? '#fbbf24' : (isOverheating ? '#f87171' : '#38bdf8'));
   ctx.lineWidth = 4;
   drawRoundedRect(centerX - size / 2, centerY - size / 2, size, size, 24);
 
-  // Forehead Brain Icon
   const levelInfo = getLevelInfo();
   const fillRatio = isDead ? 0 : (levelInfo.currentProgress / 100);
   drawBrainIcon(centerX, centerY - size * 0.32, 18, fillRatio);
 
-  // Eyes Position
   const leftEyeX = centerX - size * 0.22;
   const rightEyeX = centerX + size * 0.22;
   const eyeY = centerY - size * 0.05;
 
   if (isDead) {
-    // --- Render Dead X X Crosses ---
     drawDeadEye(leftEyeX, eyeY, 22);
     drawDeadEye(rightEyeX, eyeY, 22);
   } else {
-    // Standard Alive Eyes
     const eyeRadius = size * 0.12;
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
@@ -371,8 +357,7 @@ function renderRobotFace(centerX, centerY, baseSize) {
     ctx.arc(rightEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pupils
-    ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
+    ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : (isOverheating ? '#f87171' : '#38bdf8');
     const pupilRadius = mouthState === 'hurt' ? eyeRadius * 0.4 : eyeRadius * 0.55;
 
     ctx.beginPath();
@@ -380,7 +365,6 @@ function renderRobotFace(centerX, centerY, baseSize) {
     ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eye Catchlights
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
@@ -388,18 +372,16 @@ function renderRobotFace(centerX, centerY, baseSize) {
     ctx.fill();
   }
 
-  // --- Mouth ---
   const mouthY = centerY + size * 0.24;
-  ctx.strokeStyle = isDead ? '#ef4444' : (mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8'));
+  ctx.strokeStyle = isDead ? '#ef4444' : (mouthState === 'crit' ? '#fbbf24' : (isOverheating ? '#f87171' : '#38bdf8'));
   ctx.lineWidth = 3;
 
   if (isDead) {
-    // Flat dead mouth
     ctx.beginPath();
     ctx.moveTo(centerX - 16, mouthY + 5);
     ctx.lineTo(centerX + 16, mouthY + 5);
     ctx.stroke();
-  } else if (isHealthDeclining && mouthState === 'neutral') {
+  } else if (isOverheating && mouthState === 'neutral') {
     ctx.beginPath();
     ctx.arc(centerX, mouthY + 10, 16, 1.2 * Math.PI, 1.8 * Math.PI);
     ctx.stroke();
@@ -430,10 +412,8 @@ function render() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // Render Robot Head
   renderRobotFace(width / 2, height / 2 - 20, 190);
 
-  // Render particles
   particles.forEach((p, i) => {
     p.x += p.vx; p.y += p.vy; p.life -= 0.03;
     ctx.globalAlpha = Math.max(0, p.life);
@@ -444,7 +424,6 @@ function render() {
     if (p.life <= 0) particles.splice(i, 1);
   });
 
-  // Render floating text
   floaters.forEach((f, i) => {
     f.y += f.vy; f.alpha -= 0.02;
     ctx.globalAlpha = Math.max(0, f.alpha);
