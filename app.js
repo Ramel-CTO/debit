@@ -1,3 +1,6 @@
+// Remove legacy keys from earlier versions
+['debit_allowance', 'debit_food'].forEach(key => localStorage.removeItem(key));
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
