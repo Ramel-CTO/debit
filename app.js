@@ -31,7 +31,6 @@ let mouthState = 'neutral';
 let hurtTimer = 0;
 let nextEyeLookTimer = 0;
 
-// Dynamic Level Titles
 const levelTitles = [
   "Baby Bot", "Smart Bot", "Genius Bot", "Cyber Mind", 
   "Quantum AI", "Mega Brain", "Cosmic Oracle", "Omniscient Bot"
@@ -64,26 +63,51 @@ function updateHUD() {
 
   document.getElementById('food-container').classList.toggle('active-target', selectedMeter === 'food');
   document.getElementById('water-container').classList.toggle('active-target', selectedMeter === 'water');
+
+  // Display Emergency Revive Screen on 0 Health
+  const reviveScreen = document.getElementById('revive-screen');
+  if (health <= 0) {
+    reviveScreen.classList.remove('hidden');
+  } else {
+    reviveScreen.classList.add('hidden');
+  }
 }
 
 function selectMeter(meter) {
+  if (health <= 0) return; // Locked out when dead
   selectedMeter = (selectedMeter === meter) ? null : meter;
   updateHUD();
 }
 
-function resetPet() {
-  if (confirm("Reset your pet back to Lvl 1 and 0 Intel?")) {
-    intel = 0;
-    food = 100;
-    water = 100;
-    health = 100;
-    selectedMeter = null;
-    localStorage.clear();
-    updateHUD();
-    
-    mouthState = 'crit';
-    hurtTimer = 30;
-    shakeTimer = 8;
+function revivePet() {
+  // Emergency Defibrillator Revive State
+  health = 100;
+  food = 100;
+  water = 100;
+  intel = 0; // Wipe all Intelligence memory back to Lvl 1
+  selectedMeter = null;
+
+  localStorage.setItem('debit_intel', intel);
+  localStorage.setItem('debit_food', food);
+  localStorage.setItem('debit_water', water);
+  localStorage.setItem('debit_health', health);
+
+  updateHUD();
+
+  // Defibrillator Revive Shock FX
+  shakeTimer = 30;
+  playTapSound(true, 'levelup');
+  floaters.push({ text: 'REVIVED! ⚡', color: '#4ade80', x: width / 2, y: height / 2 - 120, vy: -3, alpha: 1.0 });
+
+  for (let i = 0; i < 50; i++) {
+    particles.push({
+      x: width / 2, y: height / 2,
+      vx: (Math.random() - 0.5) * 20,
+      vy: (Math.random() - 0.5) * 20,
+      size: Math.random() * 7 + 2,
+      life: 1.0,
+      color: '#4ade80'
+    });
   }
 }
 
@@ -142,6 +166,8 @@ function playTapSound(isCrit, toneType) {
 }
 
 function handleTap(x, y) {
+  if (health <= 0) return; // Prevent all interaction when dead
+
   const isCrit = Math.random() < 0.05;
   const prevLevel = Math.floor(intel / 100);
 
@@ -161,16 +187,13 @@ function handleTap(x, y) {
     intel += inc;
     floaters.push({ text: isCrit ? '+25 INTEL!' : '+5 INTEL', color: isCrit ? '#fbbf24' : '#38bdf8', x, y, vy: -2, alpha: 1.0 });
     
-    // Trigger Brain Pulse FX
     pulseScale = 14;
     pulseGlow = 1.0;
 
     playTapSound(isCrit, 'intel');
 
-    // Check Level Up
     const newLevel = Math.floor(intel / 100);
     if (newLevel > prevLevel) {
-      // Massive Level-Up Particle Explosion & Shake
       shakeTimer = 25;
       playTapSound(true, 'levelup');
       floaters.push({ text: 'LEVEL UP! 🎉', color: '#fbbf24', x: width / 2, y: height / 2 - 120, vy: -3, alpha: 1.0 });
@@ -248,12 +271,10 @@ function updateDecay() {
 
 setInterval(updateDecay, 1000);
 
-// Forehead Brain Icon Renderer
 function drawBrainIcon(cx, cy, size, fillRatio) {
   ctx.save();
   ctx.translate(cx, cy);
 
-  // Brain Outline / Base
   ctx.strokeStyle = '#334155';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -262,8 +283,7 @@ function drawBrainIcon(cx, cy, size, fillRatio) {
   ctx.closePath();
   ctx.stroke();
 
-  // Glowing Fill according to current Level Progress
-  if (fillRatio > 0) {
+  if (fillRatio > 0 && health > 0) {
     ctx.fillStyle = '#38bdf8';
     ctx.shadowColor = '#38bdf8';
     ctx.shadowBlur = 8;
@@ -276,8 +296,20 @@ function drawBrainIcon(cx, cy, size, fillRatio) {
   ctx.restore();
 }
 
+// Dead X X Eyes Helper
+function drawDeadEye(cx, cy, size) {
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(cx - size / 2, cy - size / 2);
+  ctx.lineTo(cx + size / 2, cy + size / 2);
+  ctx.moveTo(cx + size / 2, cy - size / 2);
+  ctx.lineTo(cx - size / 2, cy + size / 2);
+  ctx.stroke();
+}
+
 function renderRobotFace(centerX, centerY, baseSize) {
-  // Apply Brain Pulse FX sizing swell
+  const isDead = (health <= 0);
   const size = baseSize + pulseScale;
   if (pulseScale > 0) pulseScale *= 0.85;
   if (pulseGlow > 0) pulseGlow -= 0.05;
@@ -287,20 +319,20 @@ function renderRobotFace(centerX, centerY, baseSize) {
 
   const isHealthDeclining = (food === 0 || water === 0);
 
-  if (hurtTimer <= 0) {
+  if (!isDead && hurtTimer <= 0) {
     nextEyeLookTimer--;
     if (nextEyeLookTimer <= 0) {
       targetEyeX = (Math.random() - 0.5) * 16;
       targetEyeY = (Math.random() - 0.5) * 12;
       nextEyeLookTimer = Math.floor(Math.random() * 90) + 40;
     }
-  } else {
+  } else if (!isDead) {
     hurtTimer--;
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // --- Brain Pulse Glow Shockwave ---
-  if (pulseGlow > 0) {
+  // Shockwave Glow
+  if (pulseGlow > 0 && !isDead) {
     ctx.save();
     ctx.strokeStyle = `rgba(56, 189, 248, ${pulseGlow})`;
     ctx.lineWidth = 6;
@@ -310,52 +342,64 @@ function renderRobotFace(centerX, centerY, baseSize) {
     ctx.restore();
   }
 
-  // --- Main Robot Frame ---
+  // Main Robot Frame
   ctx.fillStyle = '#1e293b';
-  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
+  ctx.strokeStyle = isDead ? '#ef4444' : (mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8'));
   ctx.lineWidth = 4;
   drawRoundedRect(centerX - size / 2, centerY - size / 2, size, size, 24);
 
-  // --- Forehead Brain Icon ---
+  // Forehead Brain Icon
   const levelInfo = getLevelInfo();
-  const fillRatio = levelInfo.currentProgress / 100;
+  const fillRatio = isDead ? 0 : (levelInfo.currentProgress / 100);
   drawBrainIcon(centerX, centerY - size * 0.32, 18, fillRatio);
 
-  // --- Eyes ---
-  const eyeRadius = size * 0.12;
+  // Eyes Position
   const leftEyeX = centerX - size * 0.22;
   const rightEyeX = centerX + size * 0.22;
   const eyeY = centerY - size * 0.05;
 
-  ctx.fillStyle = '#0f172a';
-  ctx.beginPath();
-  ctx.arc(leftEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
-  ctx.arc(rightEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
-  ctx.fill();
+  if (isDead) {
+    // --- Render Dead X X Crosses ---
+    drawDeadEye(leftEyeX, eyeY, 22);
+    drawDeadEye(rightEyeX, eyeY, 22);
+  } else {
+    // Standard Alive Eyes
+    const eyeRadius = size * 0.12;
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(leftEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.arc(rightEyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Pupils
-  ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
-  const pupilRadius = mouthState === 'hurt' ? eyeRadius * 0.4 : eyeRadius * 0.55;
+    // Pupils
+    ctx.fillStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
+    const pupilRadius = mouthState === 'hurt' ? eyeRadius * 0.4 : eyeRadius * 0.55;
 
-  ctx.beginPath();
-  ctx.arc(leftEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
-  ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
-  ctx.fill();
+    ctx.beginPath();
+    ctx.arc(leftEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
+    ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Eye Catchlights
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
-  ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
-  ctx.fill();
+    // Eye Catchlights
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
+    ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // --- Mouth ---
   const mouthY = centerY + size * 0.24;
-  ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8');
+  ctx.strokeStyle = isDead ? '#ef4444' : (mouthState === 'crit' ? '#fbbf24' : (isHealthDeclining ? '#f87171' : '#38bdf8'));
   ctx.lineWidth = 3;
-  ctx.fillStyle = '#38bdf8';
 
-  if (isHealthDeclining && mouthState === 'neutral') {
+  if (isDead) {
+    // Flat dead mouth
+    ctx.beginPath();
+    ctx.moveTo(centerX - 16, mouthY + 5);
+    ctx.lineTo(centerX + 16, mouthY + 5);
+    ctx.stroke();
+  } else if (isHealthDeclining && mouthState === 'neutral') {
     ctx.beginPath();
     ctx.arc(centerX, mouthY + 10, 16, 1.2 * Math.PI, 1.8 * Math.PI);
     ctx.stroke();
@@ -370,6 +414,7 @@ function renderRobotFace(centerX, centerY, baseSize) {
   } else if (mouthState === 'crit') {
     ctx.beginPath();
     ctx.arc(centerX, mouthY, 15, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbbf24';
     ctx.fill();
   }
 }
