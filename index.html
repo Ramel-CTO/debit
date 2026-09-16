@@ -6,6 +6,13 @@
   <meta name="color-scheme" content="dark">
   <title>DeBit ⚡</title>
   
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DeBit">
+  
   <style>
     html, body {
       background-color: #090d16 !important;
@@ -29,13 +36,11 @@
     <div id="level-title">Lvl 1: Baby Bot</div>
     <div id="stat-amount">0 / 100 Intel</div>
     
-    <!-- Intel Level Progress Bar -->
     <div id="intel-bar-outer">
       <div id="intel-bar-fill"></div>
     </div>
   </div>
 
-  <!-- Game Over Emergency Revive Screen -->
   <div id="revive-screen" class="hidden">
     <div class="revive-card">
       <div class="revive-title">BOT FAINTED ⚡</div>
@@ -44,7 +49,6 @@
     </div>
   </div>
 
-  <!-- Bottom Tamagotchi Status Bars -->
   <div id="bottom-hud">
     <div class="bar-container" id="food-container" onclick="selectMeter('food')">
       <span class="bar-label">FOOD</span>
@@ -69,5 +73,16 @@
   </div>
 
   <script src="app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log('Service Worker Registered'))
+          .catch((err) => console.log('SW Registration Failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>
