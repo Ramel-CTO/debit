@@ -1,4 +1,4 @@
-# DeBit ⚡
+# DeBit 
 
 > **Tap your debt to zero.**  
 > A hyper-casual, zero-friction financial habit tracker designed to turn debt payoff into an addictive micro-game.
