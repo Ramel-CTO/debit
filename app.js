@@ -31,7 +31,7 @@ window.addEventListener('resize', () => {
   height = canvas.height = window.innerHeight;
 });
 
-// Universal Rounded Rect Helper Function (Prevents Canvas Crashes)
+// Universal Rounded Rect Helper Function
 function drawRoundedRect(x, y, w, h, r) {
   ctx.beginPath();
   if (ctx.roundRect) {
@@ -48,28 +48,37 @@ function drawRoundedRect(x, y, w, h, r) {
   ctx.stroke();
 }
 
-// Web Audio Synthesizer
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Safe Web Audio Synthesizer (Desktop Friendly)
+let audioCtx = null;
 
 function playTapSound(isCrit) {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  
-  osc.type = isCrit ? 'sawtooth' : 'triangle';
-  const baseFreq = isCrit ? 650 : 160 + Math.min(comboPitch * 15, 380);
-  
-  osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + (isCrit ? 0.25 : 0.08));
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = isCrit ? 'sawtooth' : 'triangle';
+    const baseFreq = isCrit ? 650 : 160 + Math.min(comboPitch * 15, 380);
+    
+    osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + (isCrit ? 0.25 : 0.08));
 
-  gain.gain.setValueAtTime(isCrit ? 0.5 : 0.2, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isCrit ? 0.25 : 0.08));
+    gain.gain.setValueAtTime(isCrit ? 0.5 : 0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isCrit ? 0.25 : 0.08));
 
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + (isCrit ? 0.25 : 0.08));
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + (isCrit ? 0.25 : 0.08));
+  } catch (e) {
+    // Graceful fallback if audio is blocked by browser policy
+  }
 }
 
 function updateProgressBar() {
@@ -191,11 +200,11 @@ function renderRobotFace(centerX, centerY, size) {
     ctx.stroke();
   } else if (mouthState === 'hurt') {
     ctx.beginPath();
-    ctx.ellipse(centerX, mouthY, 8, 12, 0, 0, Math.PI * 2);
+    ctx.arc(centerX, mouthY, 10, 0, Math.PI * 2); // Universal Circle fallback for mouth
     ctx.stroke();
   } else if (mouthState === 'crit') {
     ctx.beginPath();
-    ctx.ellipse(centerX, mouthY, 16, 14, 0, 0, Math.PI * 2);
+    ctx.arc(centerX, mouthY, 15, 0, Math.PI * 2);
     ctx.fill();
   }
 }
