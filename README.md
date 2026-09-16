@@ -11,21 +11,22 @@
 
 ### 🤖 What is DeBit?
 
-**DeBit** turns digital pet care into an addictive, micro-dopamine experience. Users take care of a reactive, interactive square robot pet by monitoring its real-time vital stats, feeding and hydrating it, and tapping the screen to train its **Intelligence** through an infinite leveling system.
+**DeBit** turns digital pet care into an addictive, micro-dopamine experience. Users take care of a reactive, interactive square robot pet by monitoring its real-time vital stats, keeping it fed and hydrated, and tapping the screen to train its **Intelligence** through an infinite leveling system.
 
 * **Zero Backend & Zero Logins:** Runs 100% locally in the browser using HTML5 Canvas and `localStorage`.
-* **Real-Time Tamagotchi Mechanics:** Dynamic decay timers constantly drain Food and Water meters. If neglected, your pet's Health drops and its face shifts to a sad expression (`;_;`).
-* **Tactile Feedback & Haptics:** Zero-latency Web Audio synth escalation, screen shakes, particle explosions, and interactive touch-tracking eyes.
+* **7-Day Tamagotchi Survival:** Real-time decay timers continuously drain Food (green) and Water (blue) meters. If either hits zero, your pet enters a 7-day Health decline with sad expressions (`;_;`).
+* **Game Over & Emergency Defibrillator:** If Health reaches 0%, the bot faints with `X X` cross eyes and enters lockout. Reviving it shocks it back to life, but completely wipes its Intelligence memory back to Level 1!
+* **Tactile Feedback & Audio:** Zero-latency Web Audio synth escalation, screen shakes, particle explosions, and interactive touch-tracking eyes.
 
 ---
 
 ### ✨ Core Features
 
-* **Intel Leveling Engine:** Every screen tap awards **+5 Intel** (+25 Intel on Critical hits). Progress fills the forehead **Brain Icon** and HUD progress bar toward 100-point level milestones.
-* **8 Progressive Rank Titles:** Watch your pet evolve from **Lvl 1: Baby Bot** all the way up to **Lvl 8+: Omniscient Bot**.
-* **Targeted Care System:** Tap the **FOOD** or **WATER** meter to enter Care Mode. Tapping the screen directly refills that stat until full, automatically returning you to Intel training mode.
+* **Intel Leveling Engine:** Tapping the screen awards **+5 Intel** (+25 Intel on Critical hits). Progress fills the forehead **Brain Icon** and HUD progress bar toward 100-point level milestones.
+* **8 Progressive Rank Titles:** Watch your pet evolve from **Lvl 1: Baby Bot** all the way to **Lvl 8+: Omniscient Bot**.
+* **Targeted Care System:** Tap the **FOOD** or **WATER** meter to select it. Screen taps will directly refill that meter until full, automatically returning you to Intel training mode.
 * **Brain Pulse FX:** Training Intel causes the robot's head to physically swell while emitting glowing electric-blue radial shockwaves.
-* **Persistent Local State:** Automatically preserves pet level, current Intel, vital meters, and offline decay timestamps between sessions.
+* **Persistent Local State:** Automatically preserves pet level, current Intel, vital meters, and offline decay timestamps across browser sessions.
 
 ---
 
@@ -37,6 +38,7 @@
 | **Refill Food / Water** | Tap the green **FOOD** or blue **WATER** meter to select it, then tap the screen to replenish the meter. |
 | **Critical Hits** | 5% chance on any tap to trigger a **CRIT** burst (+25 Intel, +25 Food, or +30 Water). |
 | **Leveling Up** | Every 100 Intel triggers a screen shake, particle explosion, synth tune, and rank unlock. |
+| **Game Over & Revive** | At 0% Health, tap **⚡ Emergency Revive** to revive your bot and reset to Level 1. |
 
 ---
 
@@ -52,17 +54,6 @@
 
 ---
 
-### 🚀 Quick Start & Setup
+### 📄 License
 
-#### 1. Launch in GitHub Codespaces
-1. Click the green **`<> Code`** button at the top of this repository.
-2. Select the **Codespaces** tab and click **Create codespace on main**.
-3. Open `index.html` and use a live preview extension to test interactions.
-
-#### 2. Local Setup
-Clone the repository and open `index.html` in any web browser:
-
-```bash
-git clone [https://github.com/YOUR-USERNAME/debit.git](https://github.com/YOUR-USERNAME/debit.git)
-cd debit
-open index.html
+Distributed under the MIT License. See `LICENSE` for more information.
