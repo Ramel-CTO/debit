@@ -74,7 +74,6 @@ body {
   transition: width 0.15s ease-out;
 }
 
-/* Game Over Screen Overlay */
 #revive-screen {
   position: absolute;
   top: 0;
@@ -138,7 +137,6 @@ body {
   transform: scale(0.96);
 }
 
-/* Bottom Tamagotchi HUD */
 #bottom-hud {
   position: absolute;
   bottom: 25px;
@@ -174,7 +172,7 @@ body {
   letter-spacing: 1px;
 }
 
-#food-container .bar-label { color: #4ade80; }
+#energy-container .bar-label { color: #4ade80; }
 #health-container .bar-label { color: #f87171; }
 #water-container .bar-label { color: #38bdf8; }
 
@@ -195,13 +193,17 @@ body {
   transition: width 0.1s linear;
 }
 
-#food-fill { background-color: #4ade80; box-shadow: 0 0 8px #4ade80; }
+#energy-fill { background-color: #4ade80; box-shadow: 0 0 8px #4ade80; }
 #health-fill { background-color: #f87171; box-shadow: 0 0 8px #f87171; }
 #water-fill { background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
 
 @keyframes flashAlert {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.3; transform: scale(0.96); }
+}
+
+.flashing {
+  animation: flashAlert 0.8s infinite;
 }
 
 .flashing {
