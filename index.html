@@ -6,7 +6,6 @@
   <meta name="color-scheme" content="dark">
   <title>DeBit ⚡</title>
   
-  <!-- Critical fallback inline CSS to prevent unstyled layout glitches -->
   <style>
     html, body {
       background-color: #090d16 !important;
@@ -26,10 +25,34 @@
   <canvas id="canvas"></canvas>
 
   <div id="hud">
-    <div id="brand-logo">DeBit</div>
-    <div id="allowance-label">Active Allowance</div>
-    <div id="allowance-amount">$0.00</div>
-    <button id="reset-btn" onclick="resetAllowance()">Reset Balance</button>
+    <div id="brand-logo">DeBit ⚡</div>
+    <div id="stat-label">BOT INTELLIGENCE</div>
+    <div id="stat-amount">0 Intel</div>
+    <button id="reset-btn" onclick="resetPet()">Reset Pet</button>
+  </div>
+
+  <!-- Bottom Tamagotchi Status Bars -->
+  <div id="bottom-hud">
+    <div class="bar-container" id="food-container" onclick="selectMeter('food')">
+      <span class="bar-label">FOOD</span>
+      <div class="bar-outer">
+        <div class="bar-fill" id="food-fill"></div>
+      </div>
+    </div>
+
+    <div class="bar-container" id="health-container">
+      <span class="bar-label">HEALTH</span>
+      <div class="bar-outer">
+        <div class="bar-fill" id="health-fill"></div>
+      </div>
+    </div>
+
+    <div class="bar-container" id="water-container" onclick="selectMeter('water')">
+      <span class="bar-label">WATER</span>
+      <div class="bar-outer">
+        <div class="bar-fill" id="water-fill"></div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
