@@ -6,7 +6,6 @@ let height = canvas.height = window.innerHeight;
 
 // Allowance State
 let allowance = parseFloat(localStorage.getItem('debit_allowance')) || 0.00;
-document.getElementById('allowance-amount').textContent = `$${allowance.toFixed(2)}`;
 
 let comboPitch = 0;
 let particles = [];
@@ -40,7 +39,13 @@ let tipTimer = 0;
 
 function rotateTip() {
   currentTipIndex = (currentTipIndex + 1) % tips.length;
-  document.getElementById('tip-text').textContent = tips[currentTipIndex];
+  const tipEl = document.getElementById('tip-text');
+  if (tipEl) tipEl.textContent = tips[currentTipIndex];
+}
+
+function updateAllowanceUI() {
+  const allowEl = document.getElementById('allowance-amount');
+  if (allowEl) allowEl.textContent = `$${allowance.toFixed(2)}`;
 }
 
 window.addEventListener('resize', () => {
@@ -109,27 +114,29 @@ function spawnBug() {
 }
 
 // Spawn initial bugs
-for (let i = 0; i < 3; i++) spawnBug();
+for (let i = 0; i < 4; i++) spawnBug();
 
 function handleTap(x, y) {
   let bugHit = false;
 
-  // Check if user squished a microchip bug
-  bugs.forEach((b, index) => {
+  // Safe iteration for squishing microchip bugs
+  for (let i = bugs.length - 1; i >= 0; i--) {
+    const b = bugs[i];
     const dist = Math.hypot(x - b.x, y - b.y);
-    if (dist < b.size * 1.2) {
-      bugs.splice(index, 1);
+    if (dist < b.size * 1.5) {
+      bugs.splice(i, 1);
       bugHit = true;
-      spawnBug(); // Respawn a new bug
+      spawnBug();
+      break;
     }
-  });
+  }
 
   const isCrit = Math.random() < 0.05;
   const inc = isCrit ? 0.25 : 0.05;
 
   allowance += inc;
   localStorage.setItem('debit_allowance', allowance);
-  document.getElementById('allowance-amount').textContent = `$${allowance.toFixed(2)}`;
+  updateAllowanceUI();
 
   shakeTimer = isCrit ? 12 : 3;
   comboPitch++;
@@ -138,7 +145,7 @@ function handleTap(x, y) {
   mouthState = isCrit ? 'crit' : 'hurt';
   hurtTimer = isCrit ? 20 : 10;
 
-  // Make robot eyes look at tap point
+  // Make robot eyes track tap location
   const centerX = width / 2;
   const centerY = height / 2;
   targetEyeX = Math.max(-10, Math.min(10, (x - centerX) / 15));
@@ -157,49 +164,46 @@ function handleTap(x, y) {
     });
   }
 
-  // Floating Allowance Gain Text
+  // Floating Allowance Text
   floaters.push({
     text: isCrit ? '+$0.25 BONUS!' : '+$0.05',
     color: isCrit ? '#fbbf24' : '#4ade80',
     x: x, y: y, vy: -2, alpha: 1.0
   });
 
-  // Occasionally trigger a new tip on tap
   if (Math.random() < 0.2) rotateTip();
 }
 
 window.addEventListener('pointerdown', (e) => handleTap(e.clientX, e.clientY));
 
-// Draw Microchip Bug with ridged legs
+// Draw Microchip Bug
 function renderBug(b) {
   ctx.save();
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
 
-  // Ridged Microchip Pins / Legs (3 on each side)
+  // Ridged Microchip Pins / Legs
   ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 2;
   for (let i = -1; i <= 1; i++) {
-    // Left pins
     ctx.beginPath();
     ctx.moveTo(-b.size / 2, i * 8);
     ctx.lineTo(-b.size / 2 - 8, i * 8);
     ctx.stroke();
 
-    // Right pins
     ctx.beginPath();
     ctx.moveTo(b.size / 2, i * 8);
     ctx.lineTo(b.size / 2 + 8, i * 8);
     ctx.stroke();
   }
 
-  // Main Black/Gold Microchip Body
+  // Main Microchip Body
   ctx.fillStyle = '#0f172a';
   ctx.strokeStyle = '#38bdf8';
   ctx.lineWidth = 2;
   drawRoundedRect(-b.size / 2, -b.size / 2, b.size, b.size, 6);
 
-  // Center Gold Core Notch
+  // Gold Core Notch
   ctx.fillStyle = '#fbbf24';
   ctx.beginPath();
   ctx.arc(0, 0, 4, 0, Math.PI * 2);
@@ -298,7 +302,7 @@ function render() {
     b.x += Math.cos(b.angle) * b.speed;
     b.y += Math.sin(b.angle) * b.speed;
 
-    // Bounce off edges
+    // Bounce off screen edges
     if (b.x < 40 || b.x > width - 40) b.angle = Math.PI - b.angle;
     if (b.y < 40 || b.y > height - 40) b.angle = -b.angle;
 
@@ -328,7 +332,7 @@ function render() {
 
   // Periodic advice rotation
   tipTimer++;
-  if (tipTimer > 360) { // Rotate tip every ~6 seconds
+  if (tipTimer > 360) {
     rotateTip();
     tipTimer = 0;
   }
@@ -336,5 +340,10 @@ function render() {
   ctx.restore();
   requestAnimationFrame(render);
 }
+
+// Ensure DOM elements are ready before initial UI update
+window.addEventListener('DOMContentLoaded', () => {
+  updateAllowanceUI();
+});
 
 render();
