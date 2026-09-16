@@ -1,4 +1,110 @@
-function renderRobotFace(centerX, centerY, size) {
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+// Allowance State
+let allowance = parseFloat(localStorage.getItem('debit_allowance')) || 0.00;
+
+let comboPitch = 0;
+let particles = [];
+let floaters = [];
+let shakeTimer = 0;
+
+// Robot Face State
+let eyeOffsetX = 0;
+let eyeOffsetY = 0;
+let targetEyeX = 0;
+let targetEyeY = 0;
+let mouthState = 'neutral';
+let hurtTimer = 0;
+let nextEyeLookTimer = 0;
+
+function updateAllowanceUI() {
+  const allowEl = document.getElementById('allowance-amount');
+  if (allowEl) allowEl.textContent = `$${allowance.toFixed(2)}`;
+}
+
+window.addEventListener('resize', () => {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
+
+// Safe Web Audio Synthesizer
+let audioCtx = null;
+
+function playTapSound(isCrit) {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = isCrit ? 'sawtooth' : 'triangle';
+    const baseFreq = isCrit ? 700 : 220 + Math.min(comboPitch * 15, 400);
+
+    osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
+
+    gain.gain.setValueAtTime(isCrit ? 0.4 : 0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + (isCrit ? 0.2 : 0.08));
+  } catch (e) {}
+}
+
+function handleTap(x, y) {
+  const isCrit = Math.random() < 0.05;
+  const inc = isCrit ? 0.25 : 0.05;
+
+  allowance += inc;
+  localStorage.setItem('debit_allowance', allowance);
+  updateAllowanceUI();
+
+  shakeTimer = isCrit ? 14 : 4;
+  comboPitch++;
+  playTapSound(isCrit);
+
+  mouthState = isCrit ? 'crit' : 'hurt';
+  hurtTimer = isCrit ? 22 : 10;
+
+  // Make eyes look directly at tap position
+  const centerX = width / 2;
+  const centerY = height / 2;
+  targetEyeX = Math.max(-12, Math.min(12, (x - centerX) / 15));
+  targetEyeY = Math.max(-12, Math.min(12, (y - centerY) / 15));
+
+  // Particles
+  const count = isCrit ? 30 : 10;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: x, y: y,
+      vx: (Math.random() - 0.5) * (isCrit ? 16 : 8),
+      vy: (Math.random() - 0.5) * (isCrit ? 16 : 8),
+      size: Math.random() * (isCrit ? 7 : 4) + 2,
+      life: 1.0,
+      color: isCrit ? '#fbbf24' : '#38bdf8'
+    });
+  }
+
+  // Floating Text
+  floaters.push({
+    text: isCrit ? '+$0.25 CRIT!' : '+$0.05',
+    color: isCrit ? '#fbbf24' : '#4ade80',
+    x: x, y: y, vy: -2, alpha: 1.0
+  });
+}
+
+window.addEventListener('pointerdown', (e) => handleTap(e.clientX, e.clientY));
+
+function renderDropletBody(centerX, centerY, size) {
   eyeOffsetX += (targetEyeX - eyeOffsetX) * 0.15;
   eyeOffsetY += (targetEyeY - eyeOffsetY) * 0.15;
 
@@ -14,7 +120,7 @@ function renderRobotFace(centerX, centerY, size) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // --- Water Droplet Body Path ---
+  // --- Water Droplet Curves ---
   const topY = centerY - size * 0.65;
   const bottomY = centerY + size * 0.55;
   const halfW = size * 0.55;
@@ -26,26 +132,26 @@ function renderRobotFace(centerX, centerY, size) {
   ctx.beginPath();
   // Start at top sharp tip
   ctx.moveTo(centerX, topY);
-  // Curve down along the right side to the bottom
+  // Curve down right side to bottom
   ctx.bezierCurveTo(centerX + halfW, centerY - size * 0.1, centerX + halfW, bottomY, centerX, bottomY);
-  // Curve back up along the left side to the top tip
+  // Curve up left side back to top tip
   ctx.bezierCurveTo(centerX - halfW, bottomY, centerX - halfW, centerY - size * 0.1, centerX, topY);
   ctx.closePath();
   
   ctx.fill();
   ctx.stroke();
 
-  // --- Droplet Highlight Sparkle (Top Right) ---
+  // Highlight Sparkle
   ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
   ctx.beginPath();
-  ctx.arc(centerX + size * 0.2, centerY - size * 0.25, 12, 0, Math.PI * 2);
+  ctx.arc(centerX + size * 0.18, centerY - size * 0.22, 10, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Eyes (Positioned inside the droplet) ---
+  // --- Eyes ---
   const eyeRadius = size * 0.11;
   const leftEyeX = centerX - size * 0.18;
   const rightEyeX = centerX + size * 0.18;
-  const eyeY = centerY + size * 0.02;
+  const eyeY = centerY + size * 0.05;
 
   ctx.fillStyle = '#0f172a';
   ctx.beginPath();
@@ -62,14 +168,14 @@ function renderRobotFace(centerX, centerY, size) {
   ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye Catchlights
+  // Pupil Catchlights
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Mouth Expressions ---
+  // --- Mouth ---
   const mouthY = centerY + size * 0.28;
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
   ctx.lineWidth = 3;
@@ -89,3 +195,48 @@ function renderRobotFace(centerX, centerY, size) {
     ctx.fill();
   }
 }
+
+function render() {
+  ctx.save();
+  if (shakeTimer > 0) {
+    ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+    shakeTimer--;
+  } else {
+    comboPitch = Math.max(0, comboPitch - 0.05);
+  }
+
+  ctx.clearRect(0, 0, width, height);
+
+  // Render Water Droplet Mascot
+  renderDropletBody(width / 2, height / 2, 200);
+
+  // Render particles
+  particles.forEach((p, i) => {
+    p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+
+  // Render floating text
+  floaters.forEach((f, i) => {
+    f.y += f.vy; f.alpha -= 0.02;
+    ctx.globalAlpha = Math.max(0, f.alpha);
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(f.text, f.x, f.y);
+    if (f.alpha <= 0) floaters.splice(i, 1);
+  });
+
+  ctx.restore();
+  requestAnimationFrame(render);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  updateAllowanceUI();
+});
+
+render();
