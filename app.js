@@ -10,7 +10,6 @@ let allowance = parseFloat(localStorage.getItem('debit_allowance')) || 0.00;
 let comboPitch = 0;
 let particles = [];
 let floaters = [];
-let bugs = [];
 let shakeTimer = 0;
 
 // Robot Face State
@@ -21,27 +20,6 @@ let targetEyeY = 0;
 let mouthState = 'neutral';
 let hurtTimer = 0;
 let nextEyeLookTimer = 0;
-
-// Kids Allowance & Financial Advice List
-const tips = [
-  "💡 Saving even $1 a week adds up fast over time!",
-  "💰 Wants vs. Needs: Needs are things you must have; wants are extra fun!",
-  "🐷 Try putting half of your allowance into a savings jar!",
-  "🏷️ Smart shoppers compare prices before spending their coins.",
-  "🚀 Setting a savings goal makes earning money feel like a quest!",
-  "⚡ Patience pays off—waiting for sales gets you more for less!",
-  "🤖 Every computer bug squished earns real digital progress!",
-  "🌟 Earning money feels awesome when you put in the hard work!"
-];
-
-let currentTipIndex = 0;
-let tipTimer = 0;
-
-function rotateTip() {
-  currentTipIndex = (currentTipIndex + 1) % tips.length;
-  const tipEl = document.getElementById('tip-text');
-  if (tipEl) tipEl.textContent = tips[currentTipIndex];
-}
 
 function updateAllowanceUI() {
   const allowEl = document.getElementById('allowance-amount');
@@ -70,7 +48,7 @@ function drawRoundedRect(x, y, w, h, r) {
   ctx.stroke();
 }
 
-// Audio Engine
+// Web Audio Synthesizer
 let audioCtx = null;
 
 function playTapSound(isCrit) {
@@ -99,38 +77,7 @@ function playTapSound(isCrit) {
   } catch (e) {}
 }
 
-// Spawn Microchip Bugs
-function spawnBug() {
-  if (bugs.length >= 5) return;
-  const size = 32;
-  const margin = 80;
-  bugs.push({
-    x: margin + Math.random() * (width - margin * 2),
-    y: margin + Math.random() * (height - margin * 2),
-    size: size,
-    angle: Math.random() * Math.PI * 2,
-    speed: 0.8 + Math.random() * 1.2
-  });
-}
-
-// Spawn initial bugs
-for (let i = 0; i < 4; i++) spawnBug();
-
 function handleTap(x, y) {
-  let bugHit = false;
-
-  // Safe iteration for squishing microchip bugs
-  for (let i = bugs.length - 1; i >= 0; i--) {
-    const b = bugs[i];
-    const dist = Math.hypot(x - b.x, y - b.y);
-    if (dist < b.size * 1.5) {
-      bugs.splice(i, 1);
-      bugHit = true;
-      spawnBug();
-      break;
-    }
-  }
-
   const isCrit = Math.random() < 0.05;
   const inc = isCrit ? 0.25 : 0.05;
 
@@ -138,21 +85,22 @@ function handleTap(x, y) {
   localStorage.setItem('debit_allowance', allowance);
   updateAllowanceUI();
 
-  shakeTimer = isCrit ? 12 : 3;
+  shakeTimer = isCrit ? 14 : 4;
   comboPitch++;
   playTapSound(isCrit);
 
+  // Expression updates
   mouthState = isCrit ? 'crit' : 'hurt';
-  hurtTimer = isCrit ? 20 : 10;
+  hurtTimer = isCrit ? 22 : 10;
 
-  // Make robot eyes track tap location
+  // Make robot eyes look directly at tap position
   const centerX = width / 2;
   const centerY = height / 2;
-  targetEyeX = Math.max(-10, Math.min(10, (x - centerX) / 15));
-  targetEyeY = Math.max(-10, Math.min(10, (y - centerY) / 15));
+  targetEyeX = Math.max(-12, Math.min(12, (x - centerX) / 15));
+  targetEyeY = Math.max(-12, Math.min(12, (y - centerY) / 15));
 
-  // Sparks & Particle Explosions
-  const count = isCrit ? 30 : 12;
+  // Particles
+  const count = isCrit ? 30 : 10;
   for (let i = 0; i < count; i++) {
     particles.push({
       x: x, y: y,
@@ -160,57 +108,19 @@ function handleTap(x, y) {
       vy: (Math.random() - 0.5) * (isCrit ? 16 : 8),
       size: Math.random() * (isCrit ? 7 : 4) + 2,
       life: 1.0,
-      color: isCrit ? '#fbbf24' : '#4ade80'
+      color: isCrit ? '#fbbf24' : '#38bdf8'
     });
   }
 
   // Floating Allowance Text
   floaters.push({
-    text: isCrit ? '+$0.25 BONUS!' : '+$0.05',
+    text: isCrit ? '+$0.25 CRIT!' : '+$0.05',
     color: isCrit ? '#fbbf24' : '#4ade80',
     x: x, y: y, vy: -2, alpha: 1.0
   });
-
-  if (Math.random() < 0.2) rotateTip();
 }
 
 window.addEventListener('pointerdown', (e) => handleTap(e.clientX, e.clientY));
-
-// Draw Microchip Bug
-function renderBug(b) {
-  ctx.save();
-  ctx.translate(b.x, b.y);
-  ctx.rotate(b.angle);
-
-  // Ridged Microchip Pins / Legs
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 2;
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath();
-    ctx.moveTo(-b.size / 2, i * 8);
-    ctx.lineTo(-b.size / 2 - 8, i * 8);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(b.size / 2, i * 8);
-    ctx.lineTo(b.size / 2 + 8, i * 8);
-    ctx.stroke();
-  }
-
-  // Main Microchip Body
-  ctx.fillStyle = '#0f172a';
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 2;
-  drawRoundedRect(-b.size / 2, -b.size / 2, b.size, b.size, 6);
-
-  // Gold Core Notch
-  ctx.fillStyle = '#fbbf24';
-  ctx.beginPath();
-  ctx.arc(0, 0, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
 
 function renderRobotFace(centerX, centerY, size) {
   eyeOffsetX += (targetEyeX - eyeOffsetX) * 0.15;
@@ -228,7 +138,7 @@ function renderRobotFace(centerX, centerY, size) {
     if (hurtTimer <= 0) mouthState = 'neutral';
   }
 
-  // Robot Outer Frame
+  // Outer Frame
   ctx.fillStyle = '#1e293b';
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
   ctx.lineWidth = 4;
@@ -255,14 +165,14 @@ function renderRobotFace(centerX, centerY, size) {
   ctx.arc(rightEyeX + eyeOffsetX, eyeY + eyeOffsetY, pupilRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye catchlights
+  // Eye Catchlight Sparks
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.arc(leftEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.arc(rightEyeX + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, pupilRadius * 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Mouth
+  // Mouth Expressions
   const mouthY = centerY + size * 0.2;
   ctx.strokeStyle = mouthState === 'crit' ? '#fbbf24' : '#38bdf8';
   ctx.lineWidth = 3;
@@ -294,20 +204,8 @@ function render() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // Render Robot
-  renderRobotFace(width / 2, height / 2 - 20, 190);
-
-  // Move & Render Microchip Bugs
-  bugs.forEach((b) => {
-    b.x += Math.cos(b.angle) * b.speed;
-    b.y += Math.sin(b.angle) * b.speed;
-
-    // Bounce off screen edges
-    if (b.x < 40 || b.x > width - 40) b.angle = Math.PI - b.angle;
-    if (b.y < 40 || b.y > height - 40) b.angle = -b.angle;
-
-    renderBug(b);
-  });
+  // Render Robot Head
+  renderRobotFace(width / 2, height / 2, 200);
 
   // Render particles
   particles.forEach((p, i) => {
@@ -330,18 +228,10 @@ function render() {
     if (f.alpha <= 0) floaters.splice(i, 1);
   });
 
-  // Periodic advice rotation
-  tipTimer++;
-  if (tipTimer > 360) {
-    rotateTip();
-    tipTimer = 0;
-  }
-
   ctx.restore();
   requestAnimationFrame(render);
 }
 
-// Ensure DOM elements are ready before initial UI update
 window.addEventListener('DOMContentLoaded', () => {
   updateAllowanceUI();
 });
