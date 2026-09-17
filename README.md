@@ -1,7 +1,7 @@
 # DeBit 
 
 > **Train your robot pet. Prevent core overheating.**  
-> A hyper-casual, client-side Tamagotchi-style virtual pet and micro-tapping game built with zero backend dependencies.
+> A Tamagotchi-style virtual pet game.
 
 [![GitHub Pages](https://img.shields.io/badge/Hosted%20With-GitHub%20Pages-blue?style=flat-square&logo=github)](https://pages.github.com/)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-purple?style=flat-square)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
